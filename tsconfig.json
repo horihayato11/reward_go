@@ -3,7 +3,7 @@
   "compilerOptions": {
     "strict": true,
     "baseUrl": ".",
-    "ignoreDeprecations": "6.0",
+    "ignoreDeprecations": "6.0",  // TypeScript 6.0の警告を無視する
     "paths": {
       "@/*": [
         "src/*"

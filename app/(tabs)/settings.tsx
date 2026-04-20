@@ -1,11 +1,11 @@
-// app/rewards.tsx
+// app/settings.tsx
 import { StyleSheet, Text, View } from 'react-native';
 
-export default function RewardsScreen() {
+export default function SettingsScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>報酬画面</Text>
-      <Text>ここに報酬情報を表示します🐾</Text>
+      <Text style={styles.title}>設定画面</Text>
+      <Text>ここに設定情報を表示します🐾</Text>
     </View>
   );
 }
