@@ -3,6 +3,8 @@
   "compilerOptions": {
     "strict": true,
     "baseUrl": ".",
+    "skipLibCheck": true,
+    "types": ["node", "react", "react-native"],
     "ignoreDeprecations": "6.0",  // TypeScript 6.0の警告を無視する
     "paths": {
       "@/*": [
@@ -10,6 +12,9 @@
       ]
     }
   },
+  "exclude": [
+    "node_modules"
+  ],
   "include": [
     "**/*.ts",
     "**/*.tsx",

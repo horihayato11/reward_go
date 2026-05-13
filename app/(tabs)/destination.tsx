@@ -1,8 +1,9 @@
 // app/destination.tsx
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location'; // ジオコーディングに必要
 import { useRouter } from 'expo-router';
-import { ChevronLeft, Search } from 'lucide-react-native';
+import { Search } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -26,7 +27,7 @@ export default function DestinationScreen() {
     try {
       // 住所や建物名を座標に変換
       const results = await Location.geocodeAsync(targetName);
-
+      
       if (results.length > 0) {
         const { latitude, longitude } = results[0];
         setLatitude(latitude.toString());
@@ -59,12 +60,7 @@ export default function DestinationScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}><ChevronLeft color="#333" size={28} /></TouchableOpacity>
-        <Text style={styles.headerTitle}>ミッション設定</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <LinearGradient colors={['#FFF8E1', '#fdd961']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.container}>
 
       <ScrollView contentContainerStyle={styles.formContainer}>
         <Text style={styles.label}>📍 どこに行きますか？</Text>
@@ -100,12 +96,12 @@ export default function DestinationScreen() {
           <Text style={styles.saveButtonText}>このミッションで決定！</Text>
         </TouchableOpacity>
       </ScrollView>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFBE6' },
+  container: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 60, paddingHorizontal: 20, paddingBottom: 20, backgroundColor: '#FFF' },
   headerTitle: { fontSize: 20, fontWeight: 'bold' },
   formContainer: { padding: 24 },

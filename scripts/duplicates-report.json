@@ -1,0 +1,125 @@
+{
+  "totalFiles": 129,
+  "basenameDuplicates": [
+    {
+      "name": "README.md",
+      "paths": [
+        ".expo\\README.md",
+        "README.md"
+      ]
+    },
+    {
+      "name": "index.tsx",
+      "paths": [
+        "app\\(tabs)\\index.tsx",
+        "app\\index.tsx",
+        "app\\settings\\index.tsx",
+        "src\\components\\atoms\\AppButton\\index.tsx",
+        "src\\components\\atoms\\AppIcon\\index.tsx",
+        "src\\components\\atoms\\AppText\\index.tsx",
+        "src\\components\\atoms\\Button\\index.tsx",
+        "src\\components\\atoms\\Icon\\index.tsx",
+        "src\\components\\atoms\\PointBadge\\index.tsx",
+        "src\\components\\atoms\\Text\\index.tsx",
+        "src\\components\\molecules\\ArrivalResultCard\\index.tsx",
+        "src\\components\\molecules\\InputWithLabel\\index.tsx",
+        "src\\components\\molecules\\RewardRuleCard\\index.tsx",
+        "src\\components\\molecules\\ScheduleCard\\index.tsx",
+        "src\\components\\molecules\\TimePickerField\\index.tsx",
+        "src\\components\\molecules\\UserCardMinimal\\index.tsx",
+        "src\\components\\organisms\\ArrivalForm\\index.tsx",
+        "src\\components\\organisms\\FooterNav\\index.tsx",
+        "src\\components\\organisms\\Header\\index.tsx",
+        "src\\components\\organisms\\RewardSummary\\index.tsx",
+        "src\\components\\organisms\\ScheduleList\\index.tsx",
+        "src\\components\\pages\\ArrivalRecordPage\\index.tsx",
+        "src\\components\\pages\\ArrivalResultPage\\index.tsx",
+        "src\\components\\pages\\AssignmentsPage\\index.tsx",
+        "src\\components\\pages\\FriendsPage\\index.tsx",
+        "src\\components\\pages\\HistoryPage\\index.tsx",
+        "src\\components\\pages\\HomePage\\index.tsx",
+        "src\\components\\pages\\ProfilePage\\index.tsx",
+        "src\\components\\pages\\RankingPage\\index.tsx",
+        "src\\components\\pages\\RewardsPage\\index.tsx",
+        "src\\components\\pages\\ScheduleCreatePage\\index.tsx",
+        "src\\components\\pages\\SchedulesPage\\index.tsx"
+      ]
+    },
+    {
+      "name": "settings.tsx",
+      "paths": [
+        "app\\(tabs)\\settings.tsx",
+        "app\\profile\\settings.tsx"
+      ]
+    },
+    {
+      "name": "_layout.tsx",
+      "paths": [
+        "app\\(tabs)\\_layout.tsx",
+        "app\\_layout.tsx"
+      ]
+    },
+    {
+      "name": "[id].tsx",
+      "paths": [
+        "app\\reward\\item\\[id].tsx",
+        "app\\reward\\medal\\[id].tsx",
+        "app\\schedule\\[id].tsx"
+      ]
+    },
+    {
+      "name": "ui.tsx",
+      "paths": [
+        "src\\components\\pages\\AssignmentPage\\ui.tsx",
+        "src\\components\\pages\\AssignmentsPage\\ui.tsx",
+        "src\\components\\pages\\FriendsPage\\ui.tsx",
+        "src\\components\\pages\\HomePage\\ui.tsx",
+        "src\\components\\pages\\ProfilePage\\ui.tsx",
+        "src\\components\\pages\\RankingPage\\ui.tsx",
+        "src\\components\\pages\\SettingsPage\\ui.tsx"
+      ]
+    },
+    {
+      "name": "index.ts",
+      "paths": [
+        "src\\hooks\\index.ts",
+        "src\\store\\index.ts"
+      ]
+    },
+    {
+      "name": "model.ts",
+      "paths": [
+        "src\\models\\ArrivalRecord\\model.ts",
+        "src\\models\\Assignment\\model.ts",
+        "src\\models\\Friend\\model.ts",
+        "src\\models\\Item\\model.ts",
+        "src\\models\\Medal\\model.ts",
+        "src\\models\\RewardRule\\model.ts",
+        "src\\models\\Schedule\\model.ts",
+        "src\\models\\UserStats\\model.ts"
+      ]
+    },
+    {
+      "name": "types.ts",
+      "paths": [
+        "src\\models\\ArrivalRecord\\types.ts",
+        "src\\models\\Item\\types.ts",
+        "src\\models\\Medal\\types.ts",
+        "src\\models\\RewardRule\\types.ts",
+        "src\\models\\Schedule\\types.ts",
+        "src\\models\\UserStats\\types.ts"
+      ]
+    },
+    {
+      "name": "context.tsx",
+      "paths": [
+        "src\\services\\ArrivalTracking\\context.tsx",
+        "src\\services\\NotificationSystem\\context.tsx",
+        "src\\services\\RewardSystem\\context.tsx",
+        "src\\services\\ScheduleManagement\\context.tsx",
+        "src\\services\\UserProgress\\context.tsx"
+      ]
+    }
+  ],
+  "contentDuplicates": []
+}
