@@ -38,11 +38,10 @@ export default function HomeScreen() {
         (loc) => setLocation(loc)
       );
 
-      // 3. 保存された設定を読み込む
-      // 保存設定の読み込みはフォーカス時にも行うのでここでは初期読み込みのみを行う
     })();
   }, []);
 
+  // --- フォーカス時に保存設定を再読み込みする関数 ---
   const loadSavedSettings = async () => {
     try {
       const savedName = await AsyncStorage.getItem('targetName');
@@ -114,6 +113,7 @@ export default function HomeScreen() {
     }
   };
 
+  // --- UIのレンダリング ---
   return (
     
     <LinearGradient 
