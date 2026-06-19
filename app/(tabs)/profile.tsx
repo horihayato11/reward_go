@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { Bell, ChevronRight, Settings, Trash2, Trophy, User } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { STORAGE_KEYS } from '@/constants/storageKeys';
 
 type MenuItem = {
   key: string;
@@ -15,14 +16,16 @@ type MenuItem = {
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const [points, setPoints] = useState<number>(120); // ダミー初期値
-  const [missions, setMissions] = useState<number>(15); // ダミー初期値
+  const [points, setPoints] = useState<number>(0);
+  const [missions, setMissions] = useState<number>(0);
 
   useEffect(() => {
     (async () => {
       try {
-        const p = await AsyncStorage.getItem('rewardgo:points');
-        const m = await AsyncStorage.getItem('rewardgo:missions');
+        const [p, m] = await Promise.all([
+          AsyncStorage.getItem(STORAGE_KEYS.POINTS),
+          AsyncStorage.getItem(STORAGE_KEYS.MISSIONS_COUNT),
+        ]);
         if (p != null) setPoints(Number(p));
         if (m != null) setMissions(Number(m));
       } catch (e) {
@@ -39,8 +42,15 @@ export default function ProfileScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
-            await AsyncStorage.removeItem('rewardgo:points');
-            await AsyncStorage.removeItem('rewardgo:missions');
+            await AsyncStorage.multiRemove([
+              STORAGE_KEYS.POINTS,
+              STORAGE_KEYS.MISSIONS_COUNT,
+              STORAGE_KEYS.ACTIVE_MISSION,
+              STORAGE_KEYS.TARGET_NAME,
+              STORAGE_KEYS.TARGET_LAT,
+              STORAGE_KEYS.TARGET_LON,
+              STORAGE_KEYS.DEADLINE_HOUR,
+            ]);
             setPoints(0);
             setMissions(0);
             Alert.alert('完了', 'データを初期化しました。');

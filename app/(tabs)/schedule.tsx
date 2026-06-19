@@ -1,3 +1,4 @@
+import { STORAGE_KEYS } from '@/constants/storageKeys';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Clock, Plus, X } from 'lucide-react-native';
@@ -23,8 +24,6 @@ type EventItem = {
   location?: string;
 };
 
-const STORAGE_KEY = 'SCHEDULE_EVENTS';
-
 const today = new Date();
 const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
 const formatDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -49,7 +48,7 @@ export default function ScheduleScreen() {
   useEffect(() => {
     (async () => {
       try {
-        const raw = await AsyncStorage.getItem(STORAGE_KEY);
+        const raw = await AsyncStorage.getItem(STORAGE_KEYS.SCHEDULE_EVENTS);
         if (raw) {
           setEvents(JSON.parse(raw));
         } else {
@@ -64,7 +63,7 @@ export default function ScheduleScreen() {
 
   const saveEvents = async (next: Record<string, EventItem[]>) => {
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      await AsyncStorage.setItem(STORAGE_KEYS.SCHEDULE_EVENTS, JSON.stringify(next));
     } catch (e) {
       console.warn('保存失敗', e);
     }

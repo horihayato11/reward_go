@@ -11,6 +11,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { STORAGE_KEYS } from '@/constants/storageKeys';
 
 type RewardItem = {
   id: string;
@@ -18,8 +19,6 @@ type RewardItem = {
   cost: number;
   Icon: any;
 };
-
-const STORAGE_KEY = 'USER_POINTS';
 
 const DUMMY_DATA: RewardItem[] = [
   { id: '1', title: 'ドット絵アイコン（ベーシック）', cost: 50, Icon: User },
@@ -34,24 +33,18 @@ export default function RewardsScreen() {
   useEffect(() => {
     (async () => {
       try {
-        const stored = await AsyncStorage.getItem(STORAGE_KEY);
-        if (stored != null) {
-          setPoints(parseInt(stored, 10));
-        } else {
-          // 初期ダミー値
-          setPoints(120);
-          await AsyncStorage.setItem(STORAGE_KEY, String(120));
-        }
+        const stored = await AsyncStorage.getItem(STORAGE_KEYS.POINTS);
+        setPoints(stored != null ? parseInt(stored, 10) : 0);
       } catch (e) {
         console.warn('ポイントの読み込みに失敗しました', e);
-        setPoints(120);
+        setPoints(0);
       }
     })();
   }, []);
 
   const savePoints = async (newPoints: number) => {
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, String(newPoints));
+      await AsyncStorage.setItem(STORAGE_KEYS.POINTS, String(newPoints));
       setPoints(newPoints);
     } catch (e) {
       console.warn('ポイントの保存に失敗しました', e);

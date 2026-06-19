@@ -1,3 +1,4 @@
+import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, useRouter } from 'expo-router';
 import { Calendar, Gift, Home, MapPin, Settings, User, UserCircle } from 'lucide-react-native';
 import React from 'react';
@@ -5,12 +6,14 @@ import { Text, TouchableOpacity, View } from 'react-native';
 
 export default function TabLayout() {
   const router = useRouter();
+  const { user } = useAuth();
+
   return (
     <Tabs screenOptions={{
-      tabBarActiveTintColor: '#FF9800', // 選択時の色（オレンジ）
-      tabBarInactiveTintColor: '#999',  // 未選択時の色
+      tabBarActiveTintColor: '#FF9800',
+      tabBarInactiveTintColor: '#999',
       tabBarStyle: {
-        borderTopLeftRadius: 20,       // 上の角を丸く
+        borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
         height: 60,
         paddingBottom: 10,
@@ -28,7 +31,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <Home size={24} color={color} />,
           headerRight: () => (
             <TouchableOpacity
-              onPress={() => router.push('/login')}
+              onPress={() => router.push((user ? '/profile' : '/auth/login') as any)}
               style={{
                 marginRight: 12,
                 width: 36,
@@ -48,14 +51,14 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="rewards" // (tabs)/rewards.tsx を作るとここに表示されます
+        name="rewards"
         options={{
           tabBarIcon: ({ color }) => <Gift size={24} color={color} />,
         }}
       />
 
       <Tabs.Screen
-        name="destination" // (tabs)/destination.tsx を作るとここに表示されます
+        name="destination"
         options={{
           title: '目的地',
           tabBarIcon: ({ color }) => <Home size={24} color={color} />,
@@ -63,7 +66,7 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="profile" // (tabs)/profile.tsx を作るとここに表示されます
+        name="profile"
         options={{
           title: 'アカウント',
           tabBarIcon: ({ color }) => <User size={24} color={color} />,
@@ -71,7 +74,7 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="schedule" // (tabs)/schedule.tsx を作るとここに表示されます
+        name="schedule"
         options={{
           title: 'スケジュール',
           tabBarIcon: ({ color }) => <Calendar size={24} color={color} />,
@@ -79,7 +82,7 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="settings" // (tabs)/settings.tsx を作るとここに表示されます
+        name="settings"
         options={{
           title: '設定',
           tabBarIcon: ({ color }) => <Settings size={24} color={color} />,
