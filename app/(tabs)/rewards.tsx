@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { STORAGE_KEYS } from '@/constants/storageKeys';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Award, Palette, Star, User } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
@@ -19,8 +20,6 @@ type RewardItem = {
   Icon: any;
 };
 
-const STORAGE_KEY = 'USER_POINTS';
-
 const DUMMY_DATA: RewardItem[] = [
   { id: '1', title: 'ドット絵アイコン（ベーシック）', cost: 50, Icon: User },
   { id: '2', title: 'シルバーメダル（小）', cost: 100, Icon: Star },
@@ -34,24 +33,18 @@ export default function RewardsScreen() {
   useEffect(() => {
     (async () => {
       try {
-        const stored = await AsyncStorage.getItem(STORAGE_KEY);
-        if (stored != null) {
-          setPoints(parseInt(stored, 10));
-        } else {
-          // 初期ダミー値
-          setPoints(120);
-          await AsyncStorage.setItem(STORAGE_KEY, String(120));
-        }
+        const stored = await AsyncStorage.getItem(STORAGE_KEYS.POINTS);
+        setPoints(stored != null ? parseInt(stored, 10) : 0);
       } catch (e) {
         console.warn('ポイントの読み込みに失敗しました', e);
-        setPoints(120);
+        setPoints(0);
       }
     })();
   }, []);
 
   const savePoints = async (newPoints: number) => {
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, String(newPoints));
+      await AsyncStorage.setItem(STORAGE_KEYS.POINTS, String(newPoints));
       setPoints(newPoints);
     } catch (e) {
       console.warn('ポイントの保存に失敗しました', e);
