@@ -1,4 +1,5 @@
 import { getApps, initializeApp } from 'firebase/app';
+import type { Auth } from 'firebase/auth';
 import { getAuth, initializeAuth } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -12,7 +13,7 @@ const firebaseConfig = {
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 
-let auth;
+let auth: Auth;
 try {
   // Use dynamic require for `firebase/auth/react-native` so builds without its typings still work.
   // eslint-disable-next-line @typescript-eslint/no-var-requires
