@@ -1,13 +1,24 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { Tabs, useRouter } from 'expo-router';
+import { Redirect, Tabs, useRouter } from 'expo-router';
 import { Calendar, Gift, Home, MapPin, Settings, User, UserCircle } from 'lucide-react-native';
 import React from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 
 export default function TabLayout() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#FF8A80" />
+      </View>
+    );
+  }
+
+  if (!user) {
+    return <Redirect href="/auth/login" />;
+  }
   return (
     <Tabs screenOptions={{
       tabBarActiveTintColor: '#FF9800',
@@ -31,7 +42,10 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <Home size={24} color={color} />,
           headerRight: () => (
             <TouchableOpacity
-              onPress={() => router.push((user ? '/profile' : '/auth/login') as any)}
+              onPress={() => {
+                const target = user ? '/account' : '/auth/login';
+                router.push(target as any);
+              }}
               style={{
                 marginRight: 12,
                 width: 36,

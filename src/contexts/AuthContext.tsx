@@ -1,47 +1,106 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { auth } from '@/lib/firebase';
+import {
+    createUserWithEmailAndPassword,
+    deleteUser as fbDeleteUser,
+    signOut as fbSignOut,
+    updateEmail as fbUpdateEmail,
+    updatePassword as fbUpdatePassword,
+    updateProfile as fbUpdateProfile,
+    onAuthStateChanged,
+    sendPasswordResetEmail,
+    signInAnonymously,
+    signInWithEmailAndPassword,
+    User,
+} from 'firebase/auth';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-type User = { id: string; name?: string } | null;
-
-type AuthContextType = {
-  user: User;
-  setUser: (u: User) => void;
-  login: (u: User) => Promise<void>;
-  logout: () => Promise<void>;
+type AuthContextValue = {
+  user: User | null;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string) => Promise<void>;
+  guestLogin: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  updateProfile: (data: { displayName?: string; photoURL?: string }) => Promise<void>;
+  updateEmail: (email: string) => Promise<void>;
+  updatePassword: (password: string) => Promise<void>;
+  deleteAccount: () => Promise<void>;
 };
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUserState] = useState<User>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const raw = await AsyncStorage.getItem('rewardgo:user');
-        if (raw) setUserState(JSON.parse(raw));
-      } catch (e) {
-        // ignore
-      }
-    })();
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setLoading(false);
+    });
+    return () => unsub();
   }, []);
 
-  const setUser = (u: User) => {
-    setUserState(u);
-    AsyncStorage.setItem('rewardgo:user', JSON.stringify(u || null)).catch(() => {});
+  const login = async (email: string, password: string) => {
+    await signInWithEmailAndPassword(auth, email, password);
   };
 
-  const login = async (u: User) => {
-    setUser(u);
-    await AsyncStorage.setItem('rewardgo:user', JSON.stringify(u));
+  const signup = async (email: string, password: string) => {
+    await createUserWithEmailAndPassword(auth, email, password);
   };
 
-  const logout = async () => {
-    setUser(null);
-    await AsyncStorage.removeItem('rewardgo:user');
+  const guestLogin = async () => {
+    await signInAnonymously(auth);
   };
 
-  return <AuthContext.Provider value={{ user, setUser, login, logout }}>{children}</AuthContext.Provider>;
+  const resetPassword = async (email: string) => {
+    await sendPasswordResetEmail(auth, email);
+  };
+
+  const signOut = async () => {
+    await fbSignOut(auth);
+  };
+
+  const updateProfile = async (data: { displayName?: string; photoURL?: string }) => {
+    if (!auth.currentUser) throw new Error('No user');
+    await fbUpdateProfile(auth.currentUser, data);
+  };
+
+  const updateEmail = async (email: string) => {
+    if (!auth.currentUser) throw new Error('No user');
+    await fbUpdateEmail(auth.currentUser, email);
+  };
+
+  const updatePassword = async (password: string) => {
+    if (!auth.currentUser) throw new Error('No user');
+    await fbUpdatePassword(auth.currentUser, password);
+  };
+
+  const deleteAccount = async () => {
+    if (!auth.currentUser) throw new Error('No user');
+    await fbDeleteUser(auth.currentUser);
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        login,
+        signup,
+        guestLogin,
+        resetPassword,
+        signOut,
+        updateProfile,
+        updateEmail,
+        updatePassword,
+        deleteAccount,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => {
@@ -49,5 +108,3 @@ export const useAuth = () => {
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
 };
-
-export default AuthContext;
