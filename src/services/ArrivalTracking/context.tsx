@@ -25,9 +25,15 @@ export const ArrivalTrackingProvider: React.FC<{ children: React.ReactNode }> = 
   const [activeMission, setActiveMission] = useState<ActiveMission | null>(null);
 
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_MISSION).then((raw) => {
-      if (raw) setActiveMission(JSON.parse(raw));
-    });
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_MISSION);
+        if (raw) setActiveMission(JSON.parse(raw));
+      } catch {
+        // 破損データはクリアして復旧
+        await AsyncStorage.removeItem(STORAGE_KEYS.ACTIVE_MISSION).catch(() => {});
+      }
+    })();
   }, []);
 
   const startMission = useCallback(async (params: Omit<ActiveMission, 'startedAt'>) => {
