@@ -45,10 +45,12 @@ export const ArrivalTrackingProvider: React.FC<{ children: React.ReactNode }> = 
   const completeMission = useCallback(async () => {
     if (!activeMission) return;
 
-    const currentPts = parseInt(await AsyncStorage.getItem(STORAGE_KEYS.POINTS) ?? '0', 10);
+    const currentPtsRaw = await AsyncStorage.getItem(STORAGE_KEYS.POINTS);
+    const currentPts = Number.isFinite(Number(currentPtsRaw)) ? Number(currentPtsRaw) : 0;
     await AsyncStorage.setItem(STORAGE_KEYS.POINTS, String(currentPts + activeMission.point));
 
-    const currentCount = parseInt(await AsyncStorage.getItem(STORAGE_KEYS.MISSIONS_COUNT) ?? '0', 10);
+    const currentCountRaw = await AsyncStorage.getItem(STORAGE_KEYS.MISSIONS_COUNT);
+    const currentCount = Number.isFinite(Number(currentCountRaw)) ? Number(currentCountRaw) : 0;
     await AsyncStorage.setItem(STORAGE_KEYS.MISSIONS_COUNT, String(currentCount + 1));
 
     await AsyncStorage.removeItem(STORAGE_KEYS.ACTIVE_MISSION);
