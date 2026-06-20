@@ -78,10 +78,10 @@ export default function LoginScreen() {
         </TouchableOpacity>
 
         <View style={styles.row}>
-          <TouchableOpacity onPress={() => router.push('/auth/signup')}>
+          <TouchableOpacity onPress={() => router.push('/auth/signup' as any)}>
             <Text style={styles.link}>新規登録はこちら</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/auth/reset-password')}>
+          <TouchableOpacity onPress={() => router.push('/auth/reset-password' as any)}>
             <Text style={styles.link}>パスワードを忘れた方</Text>
           </TouchableOpacity>
         </View>

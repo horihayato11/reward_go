@@ -64,7 +64,7 @@ export default function AccountScreen() {
   const handleSignOut = async () => {
     try {
       await signOut();
-      router.replace('/auth/login');
+      router.replace('/auth/login' as any);
     } catch (e: any) {
       Alert.alert('ログアウト失敗', e.message || 'ログアウトに失敗しました');
     }
@@ -79,7 +79,7 @@ export default function AccountScreen() {
         onPress: async () => {
           try {
             await deleteAccount();
-            router.replace('/auth/signup');
+            router.replace('/auth/signup' as any);
           } catch (e: any) {
             Alert.alert('削除失敗', e.message || 'アカウントの削除に失敗しました。再ログインが必要な場合があります。');
           }

@@ -17,7 +17,7 @@ export default function TabLayout() {
   }
 
   if (!user) {
-    return <Redirect href="/auth/login" />;
+    return <Redirect href={'/auth/login' as any} />;
   }
   return (
     <Tabs screenOptions={{
