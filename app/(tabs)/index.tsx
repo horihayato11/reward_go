@@ -1,8 +1,8 @@
-import { useArrivalTracking } from '@/services/ArrivalTracking/context';
+import { useArrivalTracking, type FavoriteLocation } from '@/services/ArrivalTracking/context';
 import * as Location from 'expo-location';
-import { useFocusEffect } from '@react-navigation/native';
+import { useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronDown, ChevronUp, Clock, MapPin, Navigation } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, Clock, MapPin, Navigation, Star, X } from 'lucide-react-native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -14,27 +14,99 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Animated, { FadeIn, FadeOut, ZoomIn, ZoomOut } from 'react-native-reanimated';
 import MapView, { Circle, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import type { LocationObject, LocationSubscription } from 'expo-location';
 
 const BASE_POINT = 30;
 
+// ─── 祝福オーバーレイ ─────────────────────────────────────────
+function CelebrationOverlay({
+  result,
+  onDismiss,
+}: {
+  result: NonNullable<ReturnType<typeof useArrivalTracking>['lastResult']>;
+  onDismiss: () => void;
+}) {
+  useEffect(() => {
+    const t = setTimeout(onDismiss, 4000);
+    return () => clearTimeout(t);
+  }, [onDismiss]);
+
+  const isSuccess = result.type === 'success';
+
+  return (
+    <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(300)} style={styles.overlayBg}>
+      <Animated.View entering={ZoomIn.springify().damping(14)} exiting={ZoomOut.duration(200)} style={styles.overlayCard}>
+        <Text style={styles.overlayEmoji}>{isSuccess ? '🎉' : '😢'}</Text>
+        <Text style={styles.overlayTitle}>{isSuccess ? 'ミッション達成！' : 'ミッション失敗...'}</Text>
+        <Text style={styles.overlayTarget}>{result.targetName}</Text>
+
+        {isSuccess && (
+          <>
+            <Text style={styles.overlayPoints}>+{result.earnedPoints} pt</Text>
+            {result.bonusMultiplier > 1 && (
+              <View style={styles.bonusBadge}>
+                <Text style={styles.bonusBadgeText}>🔥 {result.newStreak}日連続ボーナス ×{result.bonusMultiplier}</Text>
+              </View>
+            )}
+            {result.newStreak > 1 && result.bonusMultiplier === 1 && (
+              <Text style={styles.streakText}>🔥 {result.newStreak}日連続達成中！</Text>
+            )}
+          </>
+        )}
+        {!isSuccess && (
+          <Text style={styles.overlayFailSub}>次はきっと間に合う！</Text>
+        )}
+
+        <TouchableOpacity style={styles.overlayDismiss} onPress={onDismiss}>
+          <Text style={styles.overlayDismissText}>タップして閉じる</Text>
+        </TouchableOpacity>
+      </Animated.View>
+    </Animated.View>
+  );
+}
+
+// ─── メイン画面 ───────────────────────────────────────────────
 export default function HomeScreen() {
-  const { activeMission, startMission, completeMission, cancelMission } = useArrivalTracking();
+  const { activeMission, lastResult, favorites, clearLastResult, startMission, completeMission, cancelMission, addFavorite, removeFavorite } = useArrivalTracking();
+
+  // スケジュール画面からのパラメータ受け取り
+  const { missionName, missionHour } = useLocalSearchParams<{ missionName?: string; missionHour?: string }>();
 
   const [targetName, setTargetName] = useState('');
   const [deadlineHour, setDeadlineHour] = useState('18');
   const [isLoading, setIsLoading] = useState(false);
   const [isFormVisible, setIsFormVisible] = useState(true);
   const [location, setLocation] = useState<LocationObject | null>(null);
-  const [targetCoords, setTargetCoords] = useState({
-    latitude: 35.0222,
-    longitude: 135.9637,
-  });
+  const [targetCoords, setTargetCoords] = useState({ latitude: 35.0222, longitude: 135.9637 });
 
+  const mapRef = useRef<MapView>(null);
   const locationSub = useRef<LocationSubscription | null>(null);
+  const activeMissionRef = useRef(activeMission);
 
-  // 位置情報の監視開始（メモリリーク修正：クリーンアップで確実に停止）
+  useEffect(() => { activeMissionRef.current = activeMission; }, [activeMission]);
+
+  // スケジュール画面からのミッション情報を反映
+  useEffect(() => {
+    if (missionName) {
+      setTargetName(decodeURIComponent(missionName));
+      setIsFormVisible(true);
+    }
+    if (missionHour) setDeadlineHour(missionHour);
+  }, [missionName, missionHour]);
+
+  // アクティブミッション復元時にフォームを反映
+  useEffect(() => {
+    if (activeMission) {
+      setTargetName(activeMission.targetName);
+      setDeadlineHour(String(activeMission.deadlineHour));
+      setTargetCoords({ latitude: activeMission.latitude, longitude: activeMission.longitude });
+      setIsFormVisible(false);
+    }
+  }, [activeMission]);
+
+  // 位置情報監視（到着判定 + 地図自動追従）
   useEffect(() => {
     let cancelled = false;
 
@@ -50,8 +122,16 @@ export default function HomeScreen() {
         { accuracy: Location.Accuracy.High, distanceInterval: 10 },
         (loc) => {
           setLocation(loc);
-          // アクティブなミッションがある場合は到着判定
           checkArrival(loc);
+          // ミッション中は地図を現在地に追従
+          if (activeMissionRef.current) {
+            mapRef.current?.animateToRegion({
+              latitude: loc.coords.latitude,
+              longitude: loc.coords.longitude,
+              latitudeDelta: 0.012,
+              longitudeDelta: 0.012,
+            }, 800);
+          }
         },
       );
     })();
@@ -61,19 +141,14 @@ export default function HomeScreen() {
       locationSub.current?.remove();
       locationSub.current = null;
     };
-  }, [activeMission]);
-
-  // activeMission が変化するたびに最新の値で判定できるよう ref でも保持
-  const activeMissionRef = useRef(activeMission);
-  useEffect(() => {
-    activeMissionRef.current = activeMission;
+  // activeMission が切り替わったら監視を再起動して checkArrival を最新化
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeMission]);
 
   const checkArrival = useCallback((loc: LocationObject) => {
     const mission = activeMissionRef.current;
     if (!mission) return;
-
-    const R = 6371000;
+    const R = 6_371_000;
     const dLat = ((mission.latitude - loc.coords.latitude) * Math.PI) / 180;
     const dLon = ((mission.longitude - loc.coords.longitude) * Math.PI) / 180;
     const a =
@@ -83,40 +158,21 @@ export default function HomeScreen() {
         Math.sin(dLon / 2) ** 2;
     const distance = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-    const now = new Date();
-    const isInTime = now.getHours() < mission.deadlineHour;
-
-    if (distance <= 100 && isInTime) {
+    if (distance <= 100 && new Date().getHours() < mission.deadlineHour) {
       completeMission();
     }
   }, [completeMission]);
 
-  // フォーカス時にアクティブミッションを反映
-  useFocusEffect(
-    useCallback(() => {
-      if (activeMission) {
-        setTargetName(activeMission.targetName);
-        setDeadlineHour(String(activeMission.deadlineHour));
-        setTargetCoords({ latitude: activeMission.latitude, longitude: activeMission.longitude });
-        setIsFormVisible(false);
-      }
-    }, [activeMission])
-  );
-
   const handleMapPress = async (event: any) => {
+    if (activeMission) return; // ミッション中は地図タップ無効
     const { latitude, longitude } = event.nativeEvent.coordinate;
     setTargetCoords({ latitude, longitude });
-
     setIsLoading(true);
     try {
       const geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
       if (geocode.length > 0) {
         const place = geocode[0];
-        const newName =
-          place.name ||
-          `${place.region ?? ''}${place.city ?? ''}${place.street ?? ''}` ||
-          '選択した場所';
-        setTargetName(newName);
+        setTargetName(place.name || `${place.city ?? ''}${place.street ?? ''}` || '選択した場所');
         if (!isFormVisible) setIsFormVisible(true);
       }
     } catch {
@@ -129,19 +185,11 @@ export default function HomeScreen() {
   const handleStart = async () => {
     const hour = parseInt(deadlineHour, 10);
     if (!targetName || isNaN(hour) || hour < 0 || hour > 23) {
-      Alert.alert('エラー', '目的地と有効な締め切り時間（0〜23時）を入力してください');
+      Alert.alert('入力エラー', '目的地と有効な締め切り時間（0〜23時）を入力してください');
       return;
     }
-
-    await startMission({
-      targetName,
-      latitude: targetCoords.latitude,
-      longitude: targetCoords.longitude,
-      deadlineHour: hour,
-      point: BASE_POINT,
-    });
+    await startMission({ targetName, latitude: targetCoords.latitude, longitude: targetCoords.longitude, deadlineHour: hour, point: BASE_POINT });
     setIsFormVisible(false);
-    Alert.alert('ミッション開始！', `${targetName} への移動を開始しました。\n締め切り: ${hour}:00`);
   };
 
   const handleCancel = () => {
@@ -151,33 +199,61 @@ export default function HomeScreen() {
     ]);
   };
 
+  // お気に入り判定
+  const currentFav = favorites.find(
+    (f) => Math.abs(f.latitude - targetCoords.latitude) < 0.0001 && Math.abs(f.longitude - targetCoords.longitude) < 0.0001
+  );
+
+  const handleToggleFavorite = async () => {
+    if (!targetName) return;
+    if (currentFav) {
+      await removeFavorite(currentFav.id);
+    } else {
+      await addFavorite({ name: targetName, latitude: targetCoords.latitude, longitude: targetCoords.longitude });
+    }
+  };
+
+  const applyFavorite = (fav: FavoriteLocation) => {
+    setTargetName(fav.name);
+    setTargetCoords({ latitude: fav.latitude, longitude: fav.longitude });
+    setIsFormVisible(true);
+    mapRef.current?.animateToRegion({ latitude: fav.latitude, longitude: fav.longitude, latitudeDelta: 0.015, longitudeDelta: 0.015 }, 600);
+  };
+
   const isMissionActive = !!activeMission;
 
   return (
-    <LinearGradient
-      colors={['#FFF8E1', '#fdd961']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.container}
-    >
+    <LinearGradient colors={['#FFF8E1', '#fdd961']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.container}>
+
       {/* アクティブミッションバナー */}
       {isMissionActive && (
         <View style={styles.missionBanner}>
-          <View style={styles.missionBannerLeft}>
-            <Navigation size={16} color="#FF8A80" />
-            <Text style={styles.missionBannerText} numberOfLines={1}>
-              {activeMission.targetName} まで移動中
-            </Text>
-          </View>
+          <Navigation size={16} color="#FF8A80" />
+          <Text style={styles.missionBannerText} numberOfLines={1}>
+            {activeMission.targetName} まで移動中 — {activeMission.deadlineHour}:00 まで
+          </Text>
           <TouchableOpacity onPress={handleCancel} style={styles.missionCancelBtn}>
             <Text style={styles.missionCancelText}>中止</Text>
           </TouchableOpacity>
         </View>
       )}
 
+      {/* お気に入りチップ（ミッション中は非表示） */}
+      {!isMissionActive && favorites.length > 0 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.favsScroll} contentContainerStyle={styles.favsContent}>
+          {favorites.map((fav) => (
+            <TouchableOpacity key={fav.id} style={styles.favChip} onPress={() => applyFavorite(fav)}>
+              <Star size={12} color="#FF8A00" fill="#FF8A00" />
+              <Text style={styles.favChipText} numberOfLines={1}>{fav.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
+
       {/* 地図エリア */}
       <View style={styles.mapContainer}>
         <MapView
+          ref={mapRef}
           style={styles.map}
           provider={PROVIDER_GOOGLE}
           onPress={handleMapPress}
@@ -189,24 +265,10 @@ export default function HomeScreen() {
           }}
         >
           {location && (
-            <Marker
-              coordinate={{
-                latitude: location.coords.latitude,
-                longitude: location.coords.longitude,
-              }}
-              title="あなた"
-              pinColor="blue"
-            />
+            <Marker coordinate={{ latitude: location.coords.latitude, longitude: location.coords.longitude }} title="あなた" pinColor="blue" />
           )}
-
           <Marker coordinate={targetCoords} title={targetName || '目的地'} />
-
-          <Circle
-            center={targetCoords}
-            radius={100}
-            strokeColor="rgba(255, 107, 107, 0.5)"
-            fillColor="rgba(255, 107, 107, 0.2)"
-          />
+          <Circle center={targetCoords} radius={100} strokeColor="rgba(255,107,107,0.5)" fillColor="rgba(255,107,107,0.2)" />
         </MapView>
 
         {isFormVisible && !isMissionActive && (
@@ -218,19 +280,9 @@ export default function HomeScreen() {
 
       {/* 開閉トグル */}
       {!isMissionActive && (
-        <TouchableOpacity
-          style={styles.toggleBar}
-          activeOpacity={0.7}
-          onPress={() => setIsFormVisible(!isFormVisible)}
-        >
-          <Text style={styles.toggleText}>
-            {isFormVisible ? '入力を隠して地図を広げる' : '目的地を入力する'}
-          </Text>
-          {isFormVisible ? (
-            <ChevronDown color="#666" size={24} />
-          ) : (
-            <ChevronUp color="#666" size={24} />
-          )}
+        <TouchableOpacity style={styles.toggleBar} activeOpacity={0.7} onPress={() => setIsFormVisible(!isFormVisible)}>
+          <Text style={styles.toggleText}>{isFormVisible ? '入力を隠して地図を広げる' : '目的地を入力する'}</Text>
+          {isFormVisible ? <ChevronDown color="#666" size={24} /> : <ChevronUp color="#666" size={24} />}
         </TouchableOpacity>
       )}
 
@@ -240,17 +292,16 @@ export default function HomeScreen() {
           <Text style={styles.label}>📍 目的地の名前</Text>
           <View style={styles.inputContainer}>
             <View style={styles.inputRow}>
-              {isLoading ? (
-                <ActivityIndicator size="small" color="#FF8A80" style={{ marginRight: 10 }} />
-              ) : (
-                <MapPin color="#666" size={20} style={{ marginRight: 10 }} />
+              {isLoading
+                ? <ActivityIndicator size="small" color="#FF8A80" style={{ marginRight: 10 }} />
+                : <MapPin color="#666" size={20} style={{ marginRight: 10 }} />
+              }
+              <TextInput style={styles.inputFlex} value={targetName} onChangeText={setTargetName} placeholder="地図をタップして選択" />
+              {targetName.length > 0 && (
+                <TouchableOpacity onPress={handleToggleFavorite} style={styles.starBtn}>
+                  <Star size={20} color="#FF8A00" fill={currentFav ? '#FF8A00' : 'none'} />
+                </TouchableOpacity>
               )}
-              <TextInput
-                style={styles.inputFlex}
-                value={targetName}
-                onChangeText={setTargetName}
-                placeholder="地図をタップして選択"
-              />
             </View>
           </View>
 
@@ -258,14 +309,7 @@ export default function HomeScreen() {
           <View style={styles.inputContainer}>
             <View style={styles.inputRow}>
               <Clock color="#666" size={20} style={{ marginRight: 10 }} />
-              <TextInput
-                style={styles.inputFlex}
-                value={deadlineHour}
-                onChangeText={setDeadlineHour}
-                keyboardType="numeric"
-                placeholder="例: 9"
-                maxLength={2}
-              />
+              <TextInput style={styles.inputFlex} value={deadlineHour} onChangeText={setDeadlineHour} keyboardType="numeric" placeholder="例: 9" maxLength={2} />
             </View>
           </View>
 
@@ -275,6 +319,11 @@ export default function HomeScreen() {
             <Text style={styles.saveButtonText}>このミッションで決定！</Text>
           </TouchableOpacity>
         </ScrollView>
+      )}
+
+      {/* 祝福・失敗オーバーレイ */}
+      {lastResult && (
+        <CelebrationOverlay result={lastResult} onDismiss={clearLastResult} />
       )}
     </LinearGradient>
   );
@@ -286,30 +335,42 @@ const styles = StyleSheet.create({
   missionBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     backgroundColor: '#FFF',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#EEE',
+    gap: 8,
   },
-  missionBannerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
-  missionBannerText: { fontSize: 14, fontWeight: '600', color: '#333', flex: 1 },
-  missionCancelBtn: {
-    backgroundColor: '#FFE0E0',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
+  missionBannerText: { flex: 1, fontSize: 13, fontWeight: '600', color: '#333' },
+  missionCancelBtn: { backgroundColor: '#FFE0E0', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
   missionCancelText: { fontSize: 13, fontWeight: '700', color: '#D32F2F' },
 
-  mapContainer: { flex: 1, width: '100%', position: 'relative' },
+  favsScroll: { maxHeight: 48 },
+  favsContent: { paddingHorizontal: 12, paddingVertical: 8, gap: 8, alignItems: 'center' },
+  favChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    gap: 4,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+  },
+  favChipText: { fontSize: 13, fontWeight: '600', color: '#333', maxWidth: 120 },
+
+  mapContainer: { flex: 1, position: 'relative' },
   map: { width: '100%', height: '100%' },
   mapHintBadge: {
     position: 'absolute',
-    top: 15,
+    top: 12,
     alignSelf: 'center',
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: 'rgba(255,255,255,0.92)',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -321,7 +382,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'transparent',
     paddingVertical: 12,
     borderTopWidth: 1,
     borderBottomWidth: 1,
@@ -342,6 +402,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   inputFlex: { flex: 1, paddingVertical: 14, fontSize: 16 },
+  starBtn: { paddingLeft: 8 },
   pointHint: { fontSize: 13, color: '#FF8A00', fontWeight: '600', marginBottom: 4, textAlign: 'center' },
   saveButton: {
     backgroundColor: '#FF8A80',
@@ -353,4 +414,43 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   saveButtonText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
+
+  // ─── オーバーレイ ──
+  overlayBg: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
+  },
+  overlayCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 28,
+    padding: 32,
+    alignItems: 'center',
+    width: '80%',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+  },
+  overlayEmoji: { fontSize: 56, marginBottom: 12 },
+  overlayTitle: { fontSize: 22, fontWeight: '800', color: '#222', marginBottom: 4 },
+  overlayTarget: { fontSize: 15, color: '#666', marginBottom: 16, textAlign: 'center' },
+  overlayPoints: { fontSize: 36, fontWeight: '900', color: '#4CAF50', marginBottom: 8 },
+  bonusBadge: {
+    backgroundColor: '#FFF3E0',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#FFD54F',
+  },
+  bonusBadgeText: { fontSize: 13, fontWeight: '700', color: '#E65100' },
+  streakText: { fontSize: 14, color: '#FF8A00', fontWeight: '600', marginBottom: 8 },
+  overlayFailSub: { fontSize: 14, color: '#999', marginBottom: 16 },
+  overlayDismiss: { marginTop: 8 },
+  overlayDismissText: { fontSize: 13, color: '#BBB' },
 });
