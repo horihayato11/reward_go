@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Clock, Plus, X } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { Clock, Navigation, Plus, X } from 'lucide-react-native';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
     Alert,
@@ -38,6 +39,7 @@ const DUMMY_EVENTS: Record<string, EventItem[]> = {
 };
 
 export default function ScheduleScreen() {
+  const router = useRouter();
   const [selected, setSelected] = useState<string>(formatDate(today));
   const [events, setEvents] = useState<Record<string, EventItem[]>>({});
   const [modalVisible, setModalVisible] = useState(false);
@@ -113,6 +115,11 @@ export default function ScheduleScreen() {
 
   const eventsForSelected = events[selected] ?? [];
 
+  const handleSetMission = (item: EventItem) => {
+    const hour = item.start.split(':')[0];
+    router.push(`/?missionName=${encodeURIComponent(item.title)}&missionHour=${hour}` as any);
+  };
+
   const renderEvent = ({ item }: { item: EventItem }) => (
     <View style={styles.eventCard}>
       <View style={styles.eventLeft}>
@@ -122,6 +129,10 @@ export default function ScheduleScreen() {
         <Text style={styles.eventTitle}>{item.title}</Text>
         <Text style={styles.eventMeta}>{item.start} - {item.end} {item.location ? `· ${item.location}` : ''}</Text>
       </View>
+      <TouchableOpacity style={styles.missionBtn} onPress={() => handleSetMission(item)}>
+        <Navigation size={13} color="#FF8A80" />
+        <Text style={styles.missionBtnText}>ミッション</Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -209,6 +220,18 @@ const styles = StyleSheet.create({
   eventBody: { flex: 1, paddingLeft: 8 },
   eventTitle: { fontSize: 15, fontWeight: '700' },
   eventMeta: { marginTop: 6, color: '#666' },
+  missionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#FFF0F0',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: '#FFCDD2',
+  },
+  missionBtnText: { fontSize: 11, fontWeight: '700', color: '#FF8A80' },
   fab: {
     position: 'absolute',
     right: 18,
